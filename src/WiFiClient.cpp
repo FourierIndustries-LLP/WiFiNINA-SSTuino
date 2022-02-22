@@ -33,6 +33,8 @@ extern "C" {
 #include "WiFi.h"
 #include "WiFiClient.h"
 
+// #define LOGGING
+
 uint16_t WiFiClient::_srcport = 1024;
 
 WiFiClient::WiFiClient() : _sock(NO_SOCKET_AVAIL) {
@@ -47,6 +49,9 @@ int WiFiClient::connect(const char* host, uint16_t port) {
 	{
 		return connect(remote_addr, port);
 	}
+  #ifdef LOGGING
+  Serial.println("[WifiClient-WARN] Unable to resolve DNS name, return 0");
+  #endif
 	return 0;
 }
 
@@ -64,17 +69,25 @@ int WiFiClient::connect(IPAddress ip, uint16_t port) {
     	unsigned long start = millis();
 
     	// wait 4 second for the connection to close
-    	while (!connected() && millis() - start < 10000)
+    	while (!connected() && millis() - start < 10000) // timeout of 10 seconds
     		delay(1);
 
     	if (!connected())
        	{
+        #ifdef LOGGING
+        Serial.println("[WifiClient-WARN] Connection timeout, return 0");
+        #endif
     		return 0;
     	}
     } else {
-    	Serial.println("No Socket available");
+      #ifdef LOGGING
+    	Serial.println("[WifiClient-WARN] No Socket available, return 0");
+      #endif
     	return 0;
     }
+    #ifdef LOGGING
+      Serial.println("[WifiClient-INFO] Connected, return 1");
+    #endif
     return 1;
 }
 
@@ -143,11 +156,17 @@ size_t WiFiClient::write(uint8_t b) {
 size_t WiFiClient::write(const uint8_t *buf, size_t size) {
   if (_sock == NO_SOCKET_AVAIL)
   {
+    #ifdef LOGGING
+      Serial.println("[WifiClient-DEBUG] Write - No Socket Available, return 0");
+    #endif
 	  setWriteError();
 	  return 0;
   }
   if (size==0)
   {
+    #ifdef LOGGING
+      Serial.println("[WifiClient-DEBUG] Write - Size given is 0, return 0");
+    #endif
 	  setWriteError();
       return 0;
   }
@@ -155,11 +174,24 @@ size_t WiFiClient::write(const uint8_t *buf, size_t size) {
   size_t written = ServerDrv::sendData(_sock, buf, size);
   if (!written)
   {
+    #ifdef LOGGING  
+      Serial.println("[WifiClient-DEBUG] Write - No data written, return 0");
+      Serial.print("[WifiClient-DEBUG] Buffer: ");
+      for (int i = 0; i < size; i++) {
+        Serial.print(*(char *)(buf+i));
+      }
+      Serial.println();
+      Serial.print("[WifiClient-DEBUG] Size: ");
+      Serial.println(size);
+    #endif
 	  setWriteError();
       return 0;
   }
   if (!ServerDrv::checkDataSent(_sock))
   {
+    #ifdef LOGGING
+      Serial.println("[WifiClient-DEBUG] Write - Data sent check failed, return 0");
+    #endif
 	  setWriteError();
       return 0;
   }
