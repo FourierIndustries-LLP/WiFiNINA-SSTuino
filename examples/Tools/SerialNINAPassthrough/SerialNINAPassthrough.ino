@@ -1,6 +1,9 @@
 /*
-  SerialNINAPassthrough - Use esptool to flash the u-blox NINA (ESP32) module
-  Arduino MKR WiFi 1010, Arduino MKR Vidor 4000, and Arduino UNO WiFi Rev.2.
+  SerialNINAPassthrough - Use esptool to flash the ESP32 module
+  For use with PyPortal, Metro M4 WiFi, SSTuino II...
+  
+  Modified by FourierIndustries for exclusive use with SSTuino II
+  This code might not work with other Arduino variants
 
   Copyright (c) 2018 Arduino SA. All rights reserved.
 
@@ -19,85 +22,70 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifdef ARDUINO_SAMD_MKRVIDOR4000
-#include <VidorPeripherals.h>
+/*
+  NOTE: This passthrough will only work if you have soldered the jumper on the
+        back of the board labeled "IO0", or if you have a voltage level
+        shifter that connects to pin 4, in which you need to modify the
+        definition of ESP32_GPIO0 below
+*/
 
-unsigned long baud = 119400;
-#else
 unsigned long baud = 115200;
-#endif
 
-int rts = -1;
-int dtr = -1;
+#define SerialESP32   Serial1 // Serial1, because Serial2 is not broken out
+#define SPIWIFI       SPI
+#define SPIWIFI_SS    35   // Chip select pin PF2
+#define SPIWIFI_ACK   36   // a.k.a BUSY or READY pin PF3
+#define ESP32_RESETN  29   // Reset pin PA7
+#define ESP32_GPIO0   28   // If you are soldering the jumper, use pin 28
+// #define ESP32_GPIO0   4   // If you are using our flashing jig, use pin 4
+
+char ledstate = LOW;
+unsigned long last_time = 0UL;
+bool resetted = false;
 
 void setup() {
   Serial.begin(baud);
 
-#ifdef ARDUINO_SAMD_MKRVIDOR4000
-  FPGA.begin();
-#endif
+  while (!Serial);
 
-  SerialNina.begin(baud);
+  SerialESP32.begin(baud);
 
-#ifdef ARDUINO_SAMD_MKRVIDOR4000
-  FPGA.pinMode(FPGA_NINA_GPIO0, OUTPUT);
-  FPGA.pinMode(FPGA_SPIWIFI_RESET, OUTPUT);
-#else
-  pinMode(NINA_GPIO0, OUTPUT);
-  pinMode(NINA_RESETN, OUTPUT);
-#endif
-
-#ifdef ARDUINO_AVR_UNO_WIFI_REV2
-  // manually put the NINA in upload mode
-  digitalWrite(NINA_GPIO0, LOW);
-
-  digitalWrite(NINA_RESETN, LOW);
+  pinMode(SPIWIFI_SS, OUTPUT);
+  pinMode(ESP32_GPIO0, OUTPUT);
+  pinMode(ESP32_RESETN, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
+  
+  // manually put the ESP32 in upload mode
+  digitalWrite(ESP32_GPIO0, LOW); //set GPIO0 to low (DFU mode)
+  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWrite(ESP32_GPIO0, LOW);
+  digitalWrite(ESP32_RESETN, LOW);
   delay(100);
-  digitalWrite(NINA_RESETN, HIGH);
-  delay(100);
-  digitalWrite(NINA_RESETN, LOW);
-#endif
+  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(ESP32_RESETN, HIGH);
 }
 
 void loop() {
-#ifndef ARDUINO_AVR_UNO_WIFI_REV2
-  if (rts != Serial.rts()) {
-#ifdef ARDUINO_SAMD_MKRVIDOR4000
-    FPGA.digitalWrite(FPGA_SPIWIFI_RESET, (Serial.rts() == 1) ? LOW : HIGH);
-#else
-    digitalWrite(NINA_RESETN, Serial.rts());
-#endif
-    rts = Serial.rts();
+  // Flash the LED on the board to indicate serial comms activity
+
+  ledstate = LOW;
+  digitalWrite(LED_BUILTIN, ledstate);
+  while (Serial.available()) {
+    SerialESP32.write(Serial.read());
+
+    if (last_time < 10UL + millis()) {
+      ledstate = HIGH;
+      last_time = millis();
+    }
   }
 
-  if (dtr != Serial.dtr()) {
-#ifdef ARDUINO_SAMD_MKRVIDOR4000
-    FPGA.digitalWrite(FPGA_NINA_GPIO0, (Serial.dtr() == 1) ? HIGH : LOW);
-#else
-    digitalWrite(NINA_GPIO0, (Serial.dtr() == 0) ? HIGH : LOW);
-#endif
-    dtr = Serial.dtr();
+  while (SerialESP32.available()) {
+    Serial.write(SerialESP32.read());
+    if (last_time < 10UL + millis()) {
+      ledstate = HIGH;
+      last_time = millis();
+    }
   }
-#endif
-
-  if (Serial.available()) {
-    SerialNina.write(Serial.read());
-  }
-
-  if (SerialNina.available()) {
-    Serial.write(SerialNina.read());
-  }
-
-#ifndef ARDUINO_AVR_UNO_WIFI_REV2
-  // check if the USB virtual serial wants a new baud rate
-  if (Serial.baud() != baud) {
-    rts = -1;
-    dtr = -1;
-
-    baud = Serial.baud();
-#ifndef ARDUINO_SAMD_MKRVIDOR4000
-    SerialNina.begin(baud);
-#endif
-  }
-#endif
+  
+  digitalWrite(LED_BUILTIN, ledstate);
 }
