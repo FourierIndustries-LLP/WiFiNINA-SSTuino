@@ -71,10 +71,11 @@ void SpiDrv::begin()
 #ifdef SPIWIFI_ACK
       WIFININA_SLAVEREADY = SPIWIFI_ACK;
 #endif
-      
-#ifdef SPIWIFI_RESET
-      WIFININA_SLAVERESET = (uint8_t)SPIWIFI_RESET;
-#endif
+   // EDIT: SPIWIFI_RESET is specifically not invoked as the default uno-wifi board has this defined as a negative number!
+   // This edit is only applicable to SSTuino family of devices and probably should be changed eventually   
+// #ifdef SPIWIFI_RESET
+//       WIFININA_SLAVERESET = (uint8_t)SPIWIFI_RESET;
+// #endif
       
 #ifdef NINA_GPIO0
       WIFININA_SLAVEGPIO0 = NINA_GPIO0;
@@ -107,9 +108,9 @@ void SpiDrv::begin()
 
       digitalWrite(WIFININA_SLAVESELECT, HIGH);
       digitalWrite(WIFININA_SLAVERESET, inverted_reset ? HIGH : LOW);
-      delay(10);
+      delay(500);
       digitalWrite(WIFININA_SLAVERESET, inverted_reset ? LOW : HIGH);
-      delay(750);
+      delay(1000);
 
       if (WIFININA_SLAVEGPIO0 >= 0) {
 	//digitalWrite(WIFININA_SLAVEGPIO0, LOW);
