@@ -1,10 +1,10 @@
-= WiFiNINA Library for Arduino =
+= WiFiNINA Library for SSTuino =
 
 image:https://github.com/adafruit/WiFiNINA/workflows/Arduino%20Library%20CI/badge.svg["Build Status", link="https://github.com/adafruit/WiFiNINA/actions"]
 
-**Modified to allow any pins to be used for Adafruit Airlift Boards**
+**Based on the Adafruit variant of WiFiNINA, which allows any pins to be used for Adafruit Airlift Boards**
 
-Enables network connection (local and Internet) with the Arduino MKR WiFi 1010, Arduino MKR VIDOR 4000 and Arduino UNO WiFi Rev.2.
+Enables network connection (local and Internet) with the SSTuino II.
 
 With this library you can instantiate Servers, Clients and send/receive UDP packets through WiFi. The board can connect either to open or encrypted networks (WEP, WPA). The IP address can be assigned statically or through a DHCP. The library can also manage DNS.
 
