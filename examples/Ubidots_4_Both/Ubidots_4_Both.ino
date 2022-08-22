@@ -94,7 +94,15 @@ void messageReceived(String &topic, String &payload)
 
   /*
     All the messages your MQTT service receives can be
-    loaded here
+    loaded here. You should check if the message is the
+    correct topic and convert the message from String
+    to the data type you need
+
+    For example:
+    if (topicMatches("sstuino-ii/light", topic) == true)
+    {
+      light = payload.toInt(); // convert incoming message from String to int
+    }
 
     *NOTE*: Do not use this function to publish, subscribe
     or unsubscribe as it may cause deadlocks
