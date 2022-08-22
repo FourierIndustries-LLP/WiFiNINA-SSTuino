@@ -62,6 +62,13 @@ void loop()
     Serial.println("MQTT Client disconnected, reconnecting...");
     connect(client, &subscribe);
   }
+  
+  /*
+    If you need to publish data here, a publish is called like:
+    publishUbidots(client, "sstuino-ii/temperature", temperatureString);
+
+    The value passed to publishUbidots must be a String
+  */
 
   /********* This is where you put your own code *********/
 
