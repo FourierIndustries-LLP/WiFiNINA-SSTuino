@@ -35,7 +35,7 @@ bool publishUbidots(MQTTClient &client, const char *channel, String &message)
 {
   char buffer_topic[64];
   char buffer_message[32];
-  snprintf(buffer_topic, 64, "/v1.6/devices/%s", channel);
+  snprintf(buffer_topic, 64, "/v1.6/devices/" UBIDOTS_APILABEL "/%s", channel);
   snprintf(buffer_message, 32, "{\"value\": %s}", message.c_str());
   return client.publish(buffer_topic, buffer_message);
 }
@@ -45,7 +45,7 @@ bool publishUbidots(MQTTClient &client, const char *channel, String &message)
 bool subscribeUbidots(MQTTClient &client, const char *channel)
 {
   char buffer_topic[64];
-  snprintf(buffer_topic, 64, "/v1.6/devices/%s/lv", channel);
+  snprintf(buffer_topic, 64, "/v1.6/devices/" UBIDOTS_APILABEL "/%s/lv", channel);
   return client.subscribe(buffer_topic);
 }
 
@@ -54,7 +54,7 @@ bool subscribeUbidots(MQTTClient &client, const char *channel)
 bool topicMatches(const char *channel, String &topic)
 {
   char buffer_topic[64];
-  snprintf(buffer_topic, 64, "/v1.6/devices/%s/lv", channel);
+  snprintf(buffer_topic, 64, "/v1.6/devices/" UBIDOTS_APILABEL "/%s/lv", channel);
   return strncmp(buffer_topic, topic.c_str(), 64) == 0 ? true : false;
 }
 
@@ -70,7 +70,7 @@ void connect(MQTTClient &client, void (*subscribe)(void))
   }
 
   Serial.print("Connecting to MQTT");
-  while (!client.connect(MQTT_CLIENTID, MQTT_USERNAME, MQTT_PASSWORD))
+  while (!client.connect(UBIDOTS_ID, UBIDOTS_TOKEN, ""))
   {
     int lastError = client.lastError();
     // an error code of -9 is okay, it just means it will take some time
@@ -100,6 +100,29 @@ void connect(MQTTClient &client, void (*subscribe)(void))
 
   Serial.println("\nConnected to MQTT!");
   subscribe();
+}
+
+// Mega-helpers: these are functions that compose multiple other functions to complete a workflow with ease
+
+void connectToWiFiAndMQTT(WiFiClient &network, const char *ssid, const char *password, MQTTClient &client, void (*subscribe)(void), void (*messageReceived)(String &topic, String &payload)) {
+  connectToWiFi(SECRET_SSID, SECRET_PASS); // Connect to the WiFi network
+
+  // Setup the MQTT client, but not connecting yet
+  client.begin(MQTT_URL, MQTT_PORT, network);
+  client.onMessage(messageReceived);
+
+  connect(client, subscribe); // Connect to MQTT server
+}
+
+void connectionCheck(MQTTClient &client, void (*subscribe)(void)) {
+  bool connected = client.loop();
+
+  // Check if MQTT connection is active, and reconnect if it's broken
+  if (connected == false)
+  {
+    Serial.println("MQTT Client disconnected, reconnecting...");
+    connect(client, subscribe);
+  }
 }
 
 /*

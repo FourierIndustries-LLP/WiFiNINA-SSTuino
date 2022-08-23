@@ -7,6 +7,6 @@
 #define MQTT_PORT 1883
 
 /* MQTT Authentication Information */
-#define MQTT_CLIENTID "" // This is your Ubidots device ID
-#define MQTT_USERNAME "" // This is your Ubidots Device Token
-#define MQTT_PASSWORD "" // Leave blank if using Ubidots
+#define UBIDOTS_APILABEL    "" // This is your Ubidots API Label (e.g. "sstuino-ii")
+#define UBIDOTS_ID          "" // This is your Ubidots Device ID
+#define UBIDOTS_TOKEN       "" // This is your Ubidots Device Token

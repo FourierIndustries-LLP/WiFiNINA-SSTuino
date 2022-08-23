@@ -11,6 +11,7 @@
 
 #include <WiFiNINA.h>
 #include <MQTT.h>
+#include <RBD_Timer.h>
 #include "arduino_secrets.h"
 #include "helper.h"
 
@@ -24,8 +25,7 @@ int temp = 0;
 int light = LOW;
 
 // Variables for multitasking
-unsigned long previousMillis = 0;
-const long interval = 10000; // 10 seconds interval
+RBD::Timer timer(10000); // Set timer for 10 seconds
 
 /**************** End of your own code *****************/
 
@@ -40,46 +40,31 @@ void setup()
 
   /**************** End of your own code *****************/
 
-  connectToWiFi(SECRET_SSID, SECRET_PASS); // Connect to the WiFi network
-
-  // Setup the MQTT client, but not connecting yet
-  client.begin(MQTT_URL, MQTT_PORT, network);
-  client.onMessage(messageReceived);
-
-  connect(client, &subscribe); // Connect to MQTT server
+  connectToWiFiAndMQTT(network, SECRET_SSID, SECRET_PASS, client, subscribe, messageReceived);
 }
 
 void loop()
 {
-  bool connected = client.loop(); // This function must be called on every loop
-
-  // Check if MQTT connection is active, and reconnect if it's broken
-  if (connected == false)
-  {
-    Serial.println("MQTT Client disconnected, reconnecting...");
-    connect(client, &subscribe);
-  }
+  connectionCheck(client, subscribe); // Check if connection is ok, must run on every loop
 
   /*
     If you need to publish data here, a publish is called like:
-    publishUbidots(client, "sstuino-ii/temperature", temperatureString);
+    publishUbidots(client, "temperature", temperatureString);
 
     The value passed to publishUbidots must be a String
   */
 
   /********* This is where you put your own code *********/
 
-  unsigned long currentMillis = millis();
-  if (currentMillis - previousMillis >= interval)
+  // Publish every 10 seconds
+  if (timer.onRestart())
   {
-    previousMillis = currentMillis;
-    
     // Read the temperature
     temp = -40 + 0.488155 * (analogRead(A0) - 20);
 
     // Convert the temperature to a String
     String temperatureString = String(temp);
-    publishUbidots(client, "sstuino-ii/temperature", temperatureString);
+    publishUbidots(client, "temperature", temperatureString);
   }
 
   digitalWrite(2, light);
@@ -99,7 +84,7 @@ void messageReceived(String &topic, String &payload)
     to the data type you need
 
     For example:
-    if (topicMatches("sstuino-ii/light", topic) == true)
+    if (topicMatches("light", topic) == true)
     {
       light = payload.toInt(); // convert incoming message from String to int
     }
@@ -110,7 +95,7 @@ void messageReceived(String &topic, String &payload)
 
   /********* This is where you put your own code *********/
 
-  if (topicMatches("sstuino-ii/light", topic) == true)
+  if (topicMatches("light", topic) == true)
   {
     // You can do something with the payload, which is a String
     light = payload.toInt(); // convert the incoming message from String to int
@@ -124,12 +109,12 @@ void subscribe()
 {
   /*
     For example, a subscribe is called like:
-    subscribeUbidots(client, "sstuino-ii/light");
+    subscribeUbidots(client, "light");
   */
  
   /********* This is where you put your own code *********/
 
-  subscribeUbidots(client, "sstuino-ii/light");
+  subscribeUbidots(client, "light");
 
   /**************** End of your own code *****************/
 }
