@@ -18,6 +18,8 @@
 WiFiClient network;
 MQTTClient client;
 
+// Declarations
+
 /********* This is where you put your own code *********/
 
 // Variables

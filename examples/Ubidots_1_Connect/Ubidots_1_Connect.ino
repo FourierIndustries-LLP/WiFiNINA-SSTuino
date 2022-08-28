@@ -18,6 +18,8 @@
 WiFiClient network;
 MQTTClient client;
 
+// Declarations
+
 /********* This is where you put your own code *********/
 
 // Timer for multitasking. Default is 10000 ms (10 seconds)
