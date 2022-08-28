@@ -24,8 +24,8 @@ MQTTClient client;
 int temp = 0;
 int light = LOW;
 
-// Variables for multitasking
-RBD::Timer timer(10000); // Set timer for 10 seconds
+// Timer for multitasking. Default is 10000 ms (10 seconds)
+RBD::Timer timer(10000);
 
 /**************** End of your own code *****************/
 
@@ -48,8 +48,14 @@ void loop()
   connectionCheck(client, subscribe); // Check if connection is ok, must run on every loop
 
   /*
-    If you need to publish data here, a publish is called like:
-    publishUbidots(client, "temperature", temperatureString);
+    If you need to publish data here, a publish is called 
+    with a timer like this:
+
+    if (timer.onRestart())
+    {
+      String dataString = String(data);
+      publishUbidots(client, "topicName", dataString);
+    }
 
     The value passed to publishUbidots must be a String
   */
